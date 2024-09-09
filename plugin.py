@@ -141,29 +141,46 @@ class EBOdds(callbacks.Plugin):
                     th = table.find('th')
                     if th and 'Presidency 2024' in th.text:
                         log.debug("Found the correct table for candidates")
-                        for row in table.find_all('tr'):
+                        log.debug(f"Table HTML: {table}")
+                        rows = table.find_all('tr')
+                        log.debug(f"Found {len(rows)} rows in the table")
+                        for row in rows:
+                            log.debug(f"Analyzing row: {row}")
                             name_td = row.find('td', class_='name')
                             if name_td:
                                 name = name_td.text.strip()
-                                odds_p = row.find('p', style=lambda value: value and 'font-size: 55pt' in value)
+                                log.debug(f"Found candidate name: {name}")
+                                odds_p = row.find('p', style=lambda value: value and 'font-size:' in value and 'pt' in value)
                                 if odds_p:
                                     odds_text = odds_p.text.strip()
+                                    log.debug(f"Found odds text for {name}: {odds_text}")
                                     try:
                                         odds = float(odds_text.strip('%'))
+                                        log.debug(f"Parsed odds for {name}: {odds}%")
                                         
-                                        change_span = row.find('span', style=lambda value: value and 'font-size: 20pt' in value)
+                                        change_span = row.find('span', style=lambda value: value and 'font-size:' in value and 'pt' in value)
                                         if change_span:
                                             change_text = change_span.text.strip()
+                                            log.debug(f"Found change text for {name}: {change_text}")
                                             change_match = re.search(r'([+-]?\d+\.?\d*)%', change_text)
                                             if change_match:
                                                 change_value = float(change_match.group(1))
                                                 change_img = change_span.find('img')
-                                                change_direction = 'down' if change_img and 'red.png' in change_img['src'] else 'up'
+                                                change_direction = 'down' if change_img and 'red' in change_img['src'] else 'up'
                                                 candidates.append((name, odds, change_value, change_direction))
                                                 log.debug(f"Parsed candidate: {name}, odds: {odds}%, change: {change_value}% ({change_direction})")
+                                            else:
+                                                log.debug(f"Could not parse change value for {name}")
+                                        else:
+                                            log.debug(f"Could not find change span for {name}")
                                     except ValueError:
                                         log.debug(f"Failed to parse odds for candidate: {name}")
-                
+                                else:
+                                    log.debug(f"Could not find odds paragraph for {name}")
+                            else:
+                                log.debug("Row does not contain a name cell")
+                            log.debug(f"Finished analyzing row for {name if name_td else 'unknown'}")
+    
                 log.debug(f"Final candidates list: {candidates}")
                 return candidates
 
