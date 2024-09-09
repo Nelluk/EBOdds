@@ -200,11 +200,12 @@ class EBOdds(callbacks.Plugin):
         Fetches and displays the current odds for House control from electionbettingodds.com
         """
         try:
-            url = "https://electionbettingodds.com/House2024.html"
+            url = "https://electionbettingodds.com/House-Control-2024.html"
             response = requests.get(url)
             html_content = response.text
             
             log.debug("HTML content fetched successfully for House control odds.")
+            log.debug(f"Raw HTML content: {html_content[:1000]}...")  # Print first 1000 characters of HTML
             
             soup = BeautifulSoup(html_content, 'html.parser')
             
