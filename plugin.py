@@ -139,26 +139,22 @@ class EBOdds(callbacks.Plugin):
                 
                 for table in tables:
                     th = table.find('th')
-                    if th and 'Presidency 2024' in th.text:
+                    if th and 'US Presidency 2024' in th.text:
                         log.debug("Found the correct table for candidates")
-                        log.debug(f"Table HTML: {table}")
                         rows = table.find_all('tr')
                         log.debug(f"Found {len(rows)} rows in the table")
                         for row in rows:
-                            log.debug(f"Analyzing row: {row}")
-                            name_td = row.find('td', class_='name')
-                            if name_td:
-                                name = name_td.text.strip()
-                                log.debug(f"Found candidate name: {name}")
-                                odds_p = row.find('p', style=lambda value: value and 'font-size:' in value and 'pt' in value)
+                            img = row.find('img', src=lambda x: x and x.endswith('.png') and not x.endswith(('red.png', 'green.png')))
+                            if img:
+                                name = img['src'].split('/')[-1].split('.')[0]
+                                log.debug(f"Found candidate: {name}")
+                                odds_p = row.find('p', style=lambda x: x and 'font-size: 55pt' in x)
                                 if odds_p:
                                     odds_text = odds_p.text.strip()
                                     log.debug(f"Found odds text for {name}: {odds_text}")
                                     try:
                                         odds = float(odds_text.strip('%'))
-                                        log.debug(f"Parsed odds for {name}: {odds}%")
-                                        
-                                        change_span = row.find('span', style=lambda value: value and 'font-size:' in value and 'pt' in value)
+                                        change_span = row.find('span', style=lambda x: x and 'font-size: 20pt' in x)
                                         if change_span:
                                             change_text = change_span.text.strip()
                                             log.debug(f"Found change text for {name}: {change_text}")
@@ -177,9 +173,6 @@ class EBOdds(callbacks.Plugin):
                                         log.debug(f"Failed to parse odds for candidate: {name}")
                                 else:
                                     log.debug(f"Could not find odds paragraph for {name}")
-                            else:
-                                log.debug("Row does not contain a name cell")
-                            log.debug(f"Finished analyzing row for {name if name_td else 'unknown'}")
     
                 log.debug(f"Final candidates list: {candidates}")
                 return candidates
