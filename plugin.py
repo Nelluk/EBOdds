@@ -1,3 +1,24 @@
+"""
+EBOdds: A Limnoria plugin for fetching current election odds from electionbettingodds.com
+
+This plugin provides a command to fetch and display the current party odds
+for the U.S. presidency from electionbettingodds.com. It parses the HTML content
+of the website to extract odds and daily changes for Republican and Democratic parties.
+
+Commands:
+    - party: Fetches and displays the current party odds for the presidency.
+
+Usage:
+    !ebodds party
+
+Dependencies:
+    - requests
+    - beautifulsoup4
+
+Version: 1.0
+Last Updated: 2024-07-24
+"""
+
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -95,6 +116,70 @@ class EBOdds(callbacks.Plugin):
         except Exception as e:
             irc.reply(f"An error occurred: {str(e)}")
             log.exception("Exception in party command:")
+
+    def candidate(self, irc, msg, args):
+        """takes no arguments
+
+        Fetches and displays the current candidate odds for the presidency from electionbettingodds.com
+        """
+        try:
+            url = "https://electionbettingodds.com/President2024.html"
+            response = requests.get(url)
+            html_content = response.text
+            
+            log.debug("HTML content fetched successfully for candidate odds.")
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            def extract_candidate_odds():
+                tables = soup.find_all('table')
+                log.debug(f"Found {len(tables)} tables")
+                
+                candidates = []
+                
+                for table in tables:
+                    th = table.find('th')
+                    if th and 'Presidency 2024' in th.text:
+                        log.debug("Found the correct table for candidates")
+                        for row in table.find_all('tr'):
+                            name_td = row.find('td', class_='name')
+                            if name_td:
+                                name = name_td.text.strip()
+                                odds_p = row.find('p', style=lambda value: value and 'font-size: 55pt' in value)
+                                if odds_p:
+                                    odds_text = odds_p.text.strip()
+                                    try:
+                                        odds = float(odds_text.strip('%'))
+                                        
+                                        change_span = row.find('span', style=lambda value: value and 'font-size: 20pt' in value)
+                                        if change_span:
+                                            change_text = change_span.text.strip()
+                                            change_match = re.search(r'([+-]?\d+\.?\d*)%', change_text)
+                                            if change_match:
+                                                change_value = float(change_match.group(1))
+                                                change_img = change_span.find('img')
+                                                change_direction = 'down' if change_img and 'red.png' in change_img['src'] else 'up'
+                                                candidates.append((name, odds, change_value, change_direction))
+                                                log.debug(f"Parsed candidate: {name}, odds: {odds}%, change: {change_value}% ({change_direction})")
+                                    except ValueError:
+                                        log.debug(f"Failed to parse odds for candidate: {name}")
+                
+                log.debug(f"Final candidates list: {candidates}")
+                return candidates
+
+            candidates = extract_candidate_odds()
+
+            if candidates:
+                response = "Current candidate odds: "
+                for name, odds, change, direction in candidates[:3]:  # Display top 3 candidates
+                    arrow = '↑' if direction == 'up' else '↓'
+                    response += f"{name} {odds:.1f}% ({arrow}{abs(change):.1f}%), "
+                irc.reply(response.rstrip(', '))
+            else:
+                irc.reply("Failed to extract candidate odds. Check the bot's debug log for more information.")
+        except Exception as e:
+            irc.reply(f"An error occurred: {str(e)}")
+            log.exception("Exception in candidate command:")
 
 Class = EBOdds
 
