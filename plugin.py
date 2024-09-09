@@ -254,22 +254,28 @@ class EBOdds(callbacks.Plugin):
 
         response = "Current election odds: "
 
-        if party_odds:
+        if party_odds and all(party_odds):
             rep_odds, dem_odds, rep_change, dem_change, rep_direction, dem_direction = party_odds
             rep_arrow = '↑' if rep_direction == 'up' else '↓'
             dem_arrow = '↑' if dem_direction == 'up' else '↓'
             response += f"Republican {rep_odds:.1f}% ({rep_arrow}{abs(rep_change):.1f}%), "
             response += f"Democrat {dem_odds:.1f}% ({dem_arrow}{abs(dem_change):.1f}%) / "
+        else:
+            response += "Party odds unavailable / "
 
         if candidate_odds:
             response += " ".join([f"{name} {odds:.1f}% ({('↑' if direction == 'up' else '↓')}{abs(change):.1f}%)"
                                   for name, odds, change, direction in candidate_odds[:3]])
             response += " / "
+        else:
+            response += "Candidate odds unavailable / "
 
         if house_odds:
             response += "House control odds: "
             response += ", ".join([f"{party} {odds:.1f}% ({('↑' if direction == 'up' else '↓')}{abs(change):.1f}%)"
                                    for party, (odds, change, direction) in house_odds.items()])
+        else:
+            response += "House control odds unavailable"
 
         irc.reply(response.rstrip(' /'))
 
