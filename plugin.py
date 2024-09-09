@@ -1,22 +1,25 @@
 """
 EBOdds: A Limnoria plugin for fetching current election odds from electionbettingodds.com
 
-This plugin provides a command to fetch and display the current party odds
-for the U.S. presidency from electionbettingodds.com. It parses the HTML content
-of the website to extract odds and daily changes for Republican and Democratic parties.
+This plugin provides commands to fetch and display the current odds
+for various election outcomes from electionbettingodds.com.
 
 Commands:
     - party: Fetches and displays the current party odds for the presidency.
+    - candidate: Fetches and displays the current candidate odds for the presidency.
+    - house: Fetches and displays the current odds for House control.
 
 Usage:
     !ebodds party
+    !ebodds candidate
+    !ebodds house
 
 Dependencies:
     - requests
     - beautifulsoup4
 
-Version: 1.0
-Last Updated: 2024-07-24
+Version: 1.1
+Last Updated: 2024-09-09
 """
 
 import supybot.utils as utils
@@ -190,6 +193,79 @@ class EBOdds(callbacks.Plugin):
         except Exception as e:
             irc.reply(f"An error occurred: {str(e)}")
             log.exception("Exception in candidate command:")
+
+    def house(self, irc, msg, args):
+        """takes no arguments
+
+        Fetches and displays the current odds for House control from electionbettingodds.com
+        """
+        try:
+            url = "https://electionbettingodds.com/House2024.html"
+            response = requests.get(url)
+            html_content = response.text
+            
+            log.debug("HTML content fetched successfully for House control odds.")
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            def extract_house_odds():
+                tables = soup.find_all('table')
+                log.debug(f"Found {len(tables)} tables")
+                
+                house_odds = {}
+                
+                for table in tables:
+                    th = table.find('th')
+                    if th and 'House Control 2024' in th.text:
+                        log.debug("Found the correct table for House control")
+                        rows = table.find_all('tr')
+                        for row in rows:
+                            img = row.find('img', src=lambda x: x and x.endswith('.png') and not x.endswith(('red.png', 'green.png')))
+                            if img:
+                                party = img['src'].split('/')[-1].split('.')[0]
+                                log.debug(f"Found party: {party}")
+                                odds_p = row.find('p', style=lambda x: x and 'font-size: 55pt' in x)
+                                if odds_p:
+                                    odds_text = odds_p.text.strip()
+                                    log.debug(f"Found odds text for {party}: {odds_text}")
+                                    try:
+                                        odds = float(odds_text.strip('%'))
+                                        change_span = row.find('span', style=lambda x: x and 'font-size: 20pt' in x)
+                                        if change_span:
+                                            change_text = change_span.text.strip()
+                                            log.debug(f"Found change text for {party}: {change_text}")
+                                            change_match = re.search(r'([+-]?\d+\.?\d*)%', change_text)
+                                            if change_match:
+                                                change_value = float(change_match.group(1))
+                                                change_img = change_span.find('img')
+                                                change_direction = 'down' if change_img and 'red' in change_img['src'] else 'up'
+                                                house_odds[party] = (odds, change_value, change_direction)
+                                                log.debug(f"Parsed {party}: odds: {odds}%, change: {change_value}% ({change_direction})")
+                                            else:
+                                                log.debug(f"Could not parse change value for {party}")
+                                        else:
+                                            log.debug(f"Could not find change span for {party}")
+                                    except ValueError:
+                                        log.debug(f"Failed to parse odds for party: {party}")
+                                else:
+                                    log.debug(f"Could not find odds paragraph for {party}")
+                
+                log.debug(f"Final house odds: {house_odds}")
+                return house_odds
+
+            house_odds = extract_house_odds()
+
+            if house_odds:
+                response = "Current House control odds: "
+                for party, (odds, change, direction) in house_odds.items():
+                    arrow = '↑' if direction == 'up' else '↓'
+                    response += f"{party} {odds:.1f}% ({arrow}{abs(change):.1f}%), "
+                irc.reply(response.rstrip(', '))
+            else:
+                irc.reply("Failed to extract House control odds. Check the bot's debug log for more information.")
+        except Exception as e:
+            irc.reply(f"An error occurred: {str(e)}")
+            log.exception("Exception in house command:")
 
 Class = EBOdds
 
