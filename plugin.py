@@ -252,32 +252,33 @@ class EBOdds(callbacks.Plugin):
         candidate_odds = self._fetch_and_parse("https://electionbettingodds.com/President2024.html", self._extract_candidate_odds)
         house_odds = self._fetch_and_parse("https://electionbettingodds.com/House-Control-2024.html", self._extract_house_odds)
 
-        response = "Current election odds: "
+        response = "\x02\x0304🇺🇸 Current Election Odds\x03\x02: "
 
         if party_odds and all(party_odds):
             rep_odds, dem_odds, rep_change, dem_change, rep_direction, dem_direction = party_odds
-            rep_arrow = '↑' if rep_direction == 'up' else '↓'
-            dem_arrow = '↑' if dem_direction == 'up' else '↓'
-            response += f"Republican {rep_odds:.1f}% ({rep_arrow}{abs(rep_change):.1f}%), "
-            response += f"Democrat {dem_odds:.1f}% ({dem_arrow}{abs(dem_change):.1f}%) / "
+            rep_arrow = '🔺' if rep_direction == 'up' else '🔻'
+            dem_arrow = '🔺' if dem_direction == 'up' else '🔻'
+            response += f"\x0304Republican\x03 \x02{rep_odds:.1f}%\x02 ({rep_arrow}{abs(rep_change):.1f}%), "
+            response += f"\x0312Democrat\x03 \x02{dem_odds:.1f}%\x02 ({dem_arrow}{abs(dem_change):.1f}%) | "
         else:
-            response += "Party odds unavailable / "
+            response += "\x0314Party odds unavailable\x03 | "
 
         if candidate_odds:
-            response += " ".join([f"{name} {odds:.1f}% ({('↑' if direction == 'up' else '↓')}{abs(change):.1f}%)"
+            response += "Top Candidates: "
+            response += " ".join([f"\x02{name}\x02 {odds:.1f}% ({('🔺' if direction == 'up' else '🔻')}{abs(change):.1f}%)"
                                   for name, odds, change, direction in candidate_odds[:3]])
-            response += " / "
+            response += " | "
         else:
-            response += "Candidate odds unavailable / "
+            response += "\x0314Candidate odds unavailable\x03 | "
 
         if house_odds:
-            response += "House control odds: "
-            response += ", ".join([f"{party} {odds:.1f}% ({('↑' if direction == 'up' else '↓')}{abs(change):.1f}%)"
+            response += "House Control: "
+            response += ", ".join([f"\x02{party}\x02 {odds:.1f}% ({('🔺' if direction == 'up' else '🔻')}{abs(change):.1f}%)"
                                    for party, (odds, change, direction) in house_odds.items()])
         else:
-            response += "House control odds unavailable"
+            response += "\x0314House control odds unavailable\x03"
 
-        irc.reply(response.rstrip(' /'))
+        irc.reply(response.rstrip(' |'))
 
 Class = EBOdds
 
