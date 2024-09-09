@@ -198,7 +198,7 @@ class EBOdds(callbacks.Plugin):
 
         Fetches and displays the current party odds for the presidency from electionbettingodds.com
         """
-        url = "https://electionbettingodds.com/"
+        url = "https://electionbettingodds.com/PresidentialParty2024.html"
         odds = self._fetch_and_parse(url, self._extract_party_odds)
         if odds:
             republican_odds, democrat_odds, republican_change, democrat_change, rep_direction, dem_direction = odds
@@ -232,7 +232,7 @@ class EBOdds(callbacks.Plugin):
 
         Fetches and displays the current odds for House control from electionbettingodds.com
         """
-        url = "https://electionbettingodds.com/House2024.html"
+        url = "https://electionbettingodds.com/House-Control-2024.html"
         house_odds = self._fetch_and_parse(url, self._extract_house_odds)
         if house_odds:
             response = "Current House control odds: "
@@ -248,9 +248,9 @@ class EBOdds(callbacks.Plugin):
 
         Fetches and displays a summary of current odds for party, top candidates, and House control from electionbettingodds.com
         """
-        party_odds = self._fetch_and_parse("https://electionbettingodds.com/", self._extract_party_odds)
+        party_odds = self._fetch_and_parse("https://electionbettingodds.com/PresidentialParty2024.html", self._extract_party_odds)
         candidate_odds = self._fetch_and_parse("https://electionbettingodds.com/President2024.html", self._extract_candidate_odds)
-        house_odds = self._fetch_and_parse("https://electionbettingodds.com/House2024.html", self._extract_house_odds)
+        house_odds = self._fetch_and_parse("https://electionbettingodds.com/House-Control-2024.html", self._extract_house_odds)
 
         response = "Current election odds: "
 
