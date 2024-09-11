@@ -220,7 +220,7 @@ class EBOdds(callbacks.Plugin):
         candidates = self._fetch_and_parse(url, self._extract_candidate_odds)
         if candidates:
             response = "Current candidate odds: "
-            for name, odds, change, direction in candidates[:3]:  # Display top 3 candidates
+            for name, odds, change, direction in candidates[:2]:  # Display top 2 candidates
                 arrow = '↑' if direction == 'up' else '↓'
                 response += f"{name} {odds:.1f}% ({arrow}{abs(change):.1f}%), "
             irc.reply(response.rstrip(', '))
