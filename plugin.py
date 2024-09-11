@@ -266,7 +266,7 @@ class EBOdds(callbacks.Plugin):
         if candidate_odds:
             response += "Top Candidates: "
             response += " ".join([f"\x02{name}\x02 {odds:.1f}% ({('⬆️' if direction == 'up' and change != 0 else '🔻' if change != 0 else '')}{abs(change):.1f}%)"
-                                  for name, odds, change, direction in candidate_odds[:3]])
+                                  for name, odds, change, direction in candidate_odds[:2]])
             response += " | "
         else:
             response += "\x0314Candidate odds unavailable\x03 | "
