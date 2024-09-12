@@ -125,7 +125,7 @@ class EBOdds(callbacks.Plugin):
                             log.debug(f"Found odds text for {name}: {odds_text}")
                             try:
                                 odds = float(odds_text.strip('%'))
-                                if odds >= 1.0:  # Only consider candidates with at least 1% odds
+                                if odds >= 0.1:  # Only consider candidates with at least 1% odds
                                     change_span = row.find('span', style=lambda x: x and 'font-size: 20pt' in x)
                                     if change_span:
                                         change_text = change_span.text.strip()
