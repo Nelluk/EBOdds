@@ -125,27 +125,34 @@ class EBOdds(callbacks.Plugin):
                             log.debug(f"Found odds text for {name}: {odds_text}")
                             try:
                                 odds = float(odds_text.strip('%'))
-                                change_span = row.find('span', style=lambda x: x and 'font-size: 20pt' in x)
-                                if change_span:
-                                    change_text = change_span.text.strip()
-                                    log.debug(f"Found change text for {name}: {change_text}")
-                                    change_match = re.search(r'([+-]?\d+\.?\d*)%', change_text)
-                                    if change_match:
-                                        change_value = float(change_match.group(1))
-                                        change_img = change_span.find('img')
-                                        change_direction = 'down' if change_img and 'red' in change_img['src'] else 'up'
-                                        candidates.append((name, odds, change_value, change_direction))
-                                        log.debug(f"Parsed candidate: {name}, odds: {odds}%, change: {change_value}% ({change_direction})")
+                                if odds >= 1.0:  # Only consider candidates with at least 1% odds
+                                    change_span = row.find('span', style=lambda x: x and 'font-size: 20pt' in x)
+                                    if change_span:
+                                        change_text = change_span.text.strip()
+                                        log.debug(f"Found change text for {name}: {change_text}")
+                                        change_match = re.search(r'([+-]?\d+\.?\d*)%', change_text)
+                                        if change_match:
+                                            change_value = float(change_match.group(1))
+                                            change_img = change_span.find('img')
+                                            change_direction = 'down' if change_img and 'red' in change_img['src'] else 'up'
+                                            candidates.append((name, odds, change_value, change_direction))
+                                            log.debug(f"Parsed candidate: {name}, odds: {odds}%, change: {change_value}% ({change_direction})")
+                                        else:
+                                            log.debug(f"Could not parse change value for {name}")
                                     else:
-                                        log.debug(f"Could not parse change value for {name}")
+                                        log.debug(f"Could not find change span for {name}")
                                 else:
-                                    log.debug(f"Could not find change span for {name}")
+                                    log.debug(f"Skipping candidate {name} with odds less than 1%: {odds}%")
                             except ValueError:
                                 log.debug(f"Failed to parse odds for candidate: {name}")
                         else:
                             log.debug(f"Could not find odds paragraph for {name}")
-    
-        log.debug(f"Final candidates list: {candidates}")
+        
+        # Sort candidates by odds in descending order and limit to top 4
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        candidates = candidates[:4]
+        
+        log.debug(f"Final candidates list (top 4 with >=1% odds): {candidates}")
         return candidates
 
     def _extract_house_odds(self, soup):
@@ -214,13 +221,13 @@ class EBOdds(callbacks.Plugin):
     def candidate(self, irc, msg, args):
         """takes no arguments
 
-        Fetches and displays the current candidate odds for the presidency from electionbettingodds.com
+        Fetches and displays the current candidate odds (>=1%, max 4) for the presidency from electionbettingodds.com
         """
         url = "https://electionbettingodds.com/President2024.html"
         candidates = self._fetch_and_parse(url, self._extract_candidate_odds)
         if candidates:
             response = "Current candidate odds: "
-            for name, odds, change, direction in candidates[:2]:  # Display top 2 candidates
+            for name, odds, change, direction in candidates:
                 arrow = '↑' if direction == 'up' else '↓'
                 response += f"{name} {odds:.1f}% ({arrow}{abs(change):.1f}%), "
             irc.reply(response.rstrip(', '))
@@ -246,7 +253,7 @@ class EBOdds(callbacks.Plugin):
     def all(self, irc, msg, args):
         """takes no arguments
 
-        Fetches and displays a summary of current odds for party, top candidates, and House control from electionbettingodds.com
+        Fetches and displays a summary of current odds for party, top candidates (>=1%, max 4), and House control from electionbettingodds.com
         """
         party_odds = self._fetch_and_parse("https://electionbettingodds.com/PresidentialParty2024.html", self._extract_party_odds)
         candidate_odds = self._fetch_and_parse("https://electionbettingodds.com/President2024.html", self._extract_candidate_odds)
@@ -266,7 +273,7 @@ class EBOdds(callbacks.Plugin):
         if candidate_odds:
             response += "Top Candidates: "
             response += " ".join([f"\x02{name}\x02 {odds:.1f}% ({('⬆️' if direction == 'up' and change != 0 else '🔻' if change != 0 else '')}{abs(change):.1f}%)"
-                                  for name, odds, change, direction in candidate_odds[:2]])
+                                  for name, odds, change, direction in candidate_odds])
             response += " | "
         else:
             response += "\x0314Candidate odds unavailable\x03 | "
